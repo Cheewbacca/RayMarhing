@@ -4,7 +4,11 @@ const HEADER = `
   uniform vec3      iColor;
   uniform float     iTime;
   uniform vec4      iMouse;
+  uniform float     iCameraPos;
+  uniform vec3      iLightPos;
   uniform sampler2D iChannel1; 
+  uniform int       iAnimation; 
+  uniform float     iAnimationPhase;
 
   void mainImage( out vec4 c, in vec2 f );
 
@@ -59,12 +63,12 @@ vec4 trace( vec3 ro, in vec3 rd, in float tmin, in float tmax, in vec2 center )
 
         center.y += 0.01;
         float l = length(center);
-        float phase = 15.0*abs(sin(iTime*0.25));
-        // float amp = 3.0*sin(iTime*0.1)+0.2;
-        // float b = 0.3*abs(sin(iTime*0.06));
+        float phase = iAnimationPhase*abs(sin(iTime*0.25));
 
         vec2 p = abs((center/l)*sin(l*phase-iTime*3.0));
         vec3 cub = vec3( p.x, p.y, 0 );
+
+        if (iAnimation == 0) cub = vec3( 0, 0, 0 );
 
         vec2 pr = pos+0.5-ro.xz;
         vec2 mini = (pr-0.5*rds)*rdi.xz;
@@ -127,11 +131,6 @@ vec3 calcNormal( in vec3 pos, in float t )
 					  e.xxx*map( pos + e.xxx ).x );
 }
 
-const vec3 light1 = vec3(  0.7, 0.52, -0.45 );
-const vec3 light2 = vec3( -0, 0.000,  1 );
-
-const vec3 lpos = vec3(0.0) + 6.0*light1;
-
 vec2 boundingVolume( vec2 tminmax, in vec3 ro, in vec3 rd )
 {
     float bp = 10.0;
@@ -153,6 +152,11 @@ vec2 boundingVolume( vec2 tminmax, in vec3 ro, in vec3 rd )
 
 vec3 doLighting( in vec3 col, in vec3 pos, in vec3 nor, in vec3 rd, in float index )
 {
+    vec3 light1 = vec3(  iLightPos.x, iLightPos.y, iLightPos.z );
+    vec3 light2 = vec3( -0, 0.000,  1 );
+
+    vec3 lpos = vec3(0.0) + 6.0*light1;
+
     vec3  ldif = lpos - pos;
     float llen = length( ldif );
 
@@ -246,7 +250,7 @@ void mainImage( out vec4 fragColor, in vec2 fragCoord )
     vec2 center = -1.0 + 2.0 * fragCoord.xy / iResolution.xy;
 
     // camera	
-    vec3 ro = vec3( 8.5*cos(0.2+.33*time), 7.0+2.0*cos(0.1*time), 12.5*sin(0.1+0.37*time) );
+    vec3 ro = vec3( 8.5*cos(0.2+.33*time), iCameraPos, 12.5*sin(0.1+0.37*time) );
     vec3 ta = vec3( -2.5+3.0*cos(1.2+.41*time), 0.0, 2.0+3.0*sin(2.0+0.38*time) );
     float roll = 0.2*sin(0.1*time);
 

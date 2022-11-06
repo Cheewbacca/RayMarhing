@@ -1,0 +1,22 @@
+.container {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+}
+
+.inputs__container { 
+    margin-left: 8px;
+}
+
+.inputs__container-el {
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+}
+
+.inputs__container-el input {
+    margin-left: 8px;
+}
+
+.hide {
+    display: none;
+}

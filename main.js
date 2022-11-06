@@ -1,7 +1,6 @@
 "use strict";
 
 let mMouseIsDown = false;
-let lightX = 7.0;
 
 const calculateMouseX = (clientX, left, right, canvasWidth) =>
   Math.floor(((clientX - left) / (right - left)) * canvasWidth);
@@ -9,7 +8,11 @@ const calculateMouseX = (clientX, left, right, canvasWidth) =>
 const calculateMouseY = (canvasHeight, clientY, top, bottom) =>
   Math.floor(canvasHeight - ((clientY - top) / (bottom - top)) * canvasHeight);
 
-const color = [Math.random(), Math.random(), Math.random()];
+let color = [Math.random(), Math.random(), Math.random()];
+let cameraHeight = 7;
+let lightPos = [0.7, 0.52, -0.45];
+let animation = 1;
+let animationPhase = 15.0;
 
 class EffectPass {
   constructor(renderer, effect) {
@@ -68,6 +71,10 @@ class EffectPass {
     this.mRenderer.SetShaderConstant3F("iResolution", xres, yres, 1.0);
     this.mRenderer.SetShaderConstant4FV("iMouse", mouse);
     this.mRenderer.SetShaderConstant3FV("iColor", color);
+    this.mRenderer.SetShaderConstant1F("iCameraPos", cameraHeight);
+    this.mRenderer.SetShaderConstant3F("iLightPos", ...lightPos);
+    this.mRenderer.SetShaderConstant1I("iAnimation", animation);
+    this.mRenderer.SetShaderConstant1F("iAnimationPhase", animationPhase);
 
     let l1 = this.mRenderer.GetAttribLocation(this.mProgram, "pos");
 
@@ -252,3 +259,78 @@ function watchInit() {
   const gShaderToy = new Canvas(document.getElementById("player"));
   gShaderToy.Load(CODE);
 }
+
+const changeColor = (e) => {
+  const { value } = e.target;
+  const rgbColor = value.slice(1, value.length).convertToRGB();
+  color = rgbColor.map((el) => el / 255);
+};
+
+const changeCameraPos = (e) => {
+  const newHeightValue = cameraHeight + e.deltaY * 0.01;
+
+  if (newHeightValue >= 20 || newHeightValue <= 2) {
+    return;
+  }
+
+  cameraHeight = newHeightValue;
+};
+
+const changeLightPos = (e, index) => {
+  const newValue = lightPos;
+  newValue[index] = +e.target.value;
+  lightPos = newValue;
+};
+
+const toggleAnimation = (e) => {
+  animation = e.target.checked ? 1 : 0;
+  document.querySelector("#animationBlock").classList.toggle("hide");
+};
+
+const changeAnimationPhase = (e) => {
+  animationPhase = e.target.value;
+  document.querySelector("#animationPhaseText").innerText = e.target.value;
+};
+
+function watchInputs() {
+  // color
+  const colorPicker = document.querySelector('input[name="colorPicker"]');
+  colorPicker.addEventListener("change", changeColor);
+  colorPicker.addEventListener("input", changeColor);
+
+  // wheel event
+  document.addEventListener("wheel", changeCameraPos);
+
+  // light direction
+  const lightPickerX = document.querySelector('input[name="lightPickerX"]');
+  const lightPickerY = document.querySelector('input[name="lightPickerY"]');
+  const lightPickerZ = document.querySelector('input[name="lightPickerZ"]');
+
+  const lightPickers = [lightPickerX, lightPickerZ, lightPickerY];
+
+  let changeLightDirection;
+
+  lightPickers.map((picker, index) => {
+    changeLightDirection = (e) => {
+      changeLightPos(e, index);
+    };
+
+    picker.addEventListener("change", changeLightDirection);
+    picker.addEventListener("input", changeLightDirection);
+  });
+
+  // animation
+  const animationCheckbox = document.querySelector('input[name="animation"]');
+  animationCheckbox.addEventListener("change", toggleAnimation);
+
+  const animationPhasePicked = document.querySelector(
+    'input[name="animationPhase"]'
+  );
+
+  document.querySelector("#animationPhaseText").innerText = animationPhase;
+
+  animationPhasePicked.addEventListener("change", changeAnimationPhase);
+  animationPhasePicked.addEventListener("input", changeAnimationPhase);
+}
+
+document.addEventListener("DOMContentLoaded", watchInputs);

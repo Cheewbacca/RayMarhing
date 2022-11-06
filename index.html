@@ -4,37 +4,74 @@
     <title>Shader</title>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" href="./styles.css" />
     <script type="text/javascript" src="./helpers.js"></script>
     <script type="text/javascript" src="./shaders.gpu"></script>
     <script type="text/javascript" src="./main.js"></script>
   </head>
 
   <body onload="watchInit();">
-    <div id="content">
-      <div class="container">
-        <div class="block0">
-          <div id="player">
-            <canvas
-              id="demogl"
-              class="playerCanvas"
-              width="1000px"
-              height="500px"
-            ></canvas>
-            <div id="playerBar" class="playerBar">
-              <span
-                id="myTime"
-                class="playerBarText"
-                style="top: 4px; left: 88px"
-                >0.00</span
-              >
-              <span
-                id="myFramerate"
-                class="playerBarText"
-                style="top: 4px; left: 150px"
-                >00.0 fps</span
-              >
-            </div>
-          </div>
+    <div class="container">
+      <div id="player">
+        <canvas id="demogl" width="1000px" height="500px"></canvas>
+        <div>
+          <span id="myTime" style="top: 4px; left: 88px">0.00</span>
+          <span id="myFramerate" style="top: 4px; left: 150px">00.0 fps</span>
+        </div>
+      </div>
+      <div class="inputs__container">
+        <div class="inputs__container-el">
+          <label for="colorPicker">Choose color for the blocks</label>
+          <input id="colorPicker" name="colorPicker" type="color" />
+        </div>
+        <div class="inputs__container-el">
+          <label for="lightPicker">Change light position X</label>
+          <input
+            id="lightPickerX"
+            name="lightPickerX"
+            min="-10"
+            max="10"
+            step="0.01"
+            type="range"
+          />
+        </div>
+        <div class="inputs__container-el">
+          <label for="lightPicker">Change light position Y</label>
+          <input
+            id="lightPickerY"
+            name="lightPickerY"
+            min="-10"
+            max="10"
+            step="0.01"
+            type="range"
+          />
+        </div>
+        <div class="inputs__container-el">
+          <label for="lightPicker">Change light position Z</label>
+          <input
+            id="lightPickerZ"
+            name="lightPickerZ"
+            min="0"
+            max="3"
+            step="0.01"
+            type="range"
+          />
+        </div>
+        <div class="inputs__container-el">
+          <label for="animation">Enable animation</label>
+          <input id="animation" name="animation" type="checkbox" checked />
+        </div>
+        <div id="animationBlock" class="inputs__container-el">
+          <label for="animationPhase">Change animation phase</label>
+          <input
+            id="animationPhase"
+            name="animationPhase"
+            min="3"
+            max="20"
+            step="0.01"
+            type="range"
+          />
+          <p id="animationPhaseText"></p>
         </div>
       </div>
     </div>
