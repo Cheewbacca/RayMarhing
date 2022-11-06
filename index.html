@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <title>Shader</title>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <script type="text/javascript" src="./helpers.js"></script>
+    <script type="text/javascript" src="./shaders.gpu"></script>
+    <script type="text/javascript" src="./main.js"></script>
+  </head>
+
+  <body onload="watchInit();">
+    <div id="content">
+      <div class="container">
+        <div class="block0">
+          <div id="player">
+            <canvas
+              id="demogl"
+              class="playerCanvas"
+              width="1000px"
+              height="500px"
+            ></canvas>
+            <div id="playerBar" class="playerBar">
+              <span
+                id="myTime"
+                class="playerBarText"
+                style="top: 4px; left: 88px"
+                >0.00</span
+              >
+              <span
+                id="myFramerate"
+                class="playerBarText"
+                style="top: 4px; left: 150px"
+                >00.0 fps</span
+              >
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>
