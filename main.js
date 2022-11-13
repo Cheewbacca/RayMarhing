@@ -1,20 +1,71 @@
 "use strict";
 
+/**
+ * @typedef {object} ChangeEvent - Change event that fired by change events listener
+ * @typedef {object} HTMLElement - DOM element
+ */
+
 let mMouseIsDown = false;
 
+/**
+ * This function is used to calculate current mouse position by X coordinate inside canvas.
+ * @param {number} clientX - X coordinate inside window
+ * @param {number} left - X position of left side of canvas
+ * @param {number} right - X position of right side of canvas
+ * @param {number} canvasWidth - canvas width
+ * @returns {number} X coordinate of mouse position inside canvas
+ */
 const calculateMouseX = (clientX, left, right, canvasWidth) =>
   Math.floor(((clientX - left) / (right - left)) * canvasWidth);
 
+/**
+ * This function is used to calculate current mouse position by Y coordinate inside canvas.
+ * @param {number} canvasHeight - canvas height
+ * @param {number} clientY - Y coordinate inside window
+ * @param {number} top - Y position of top side of canvas
+ * @param {number} bottom - Y position of bottom side of canvas
+ * @returns {number} Y coordinate of mouse position inside canvas
+ */
 const calculateMouseY = (canvasHeight, clientY, top, bottom) =>
   Math.floor(canvasHeight - ((clientY - top) / (bottom - top)) * canvasHeight);
 
+/**
+ * @const {Array.<number>} - initial color in rgb format
+ */
 let color = [Math.random(), Math.random(), Math.random()];
+
+/**
+ * @const {number} - initial state for camera Y position
+ */
 let cameraHeight = 7;
+
+/**
+ * @const {Array.<number>} - initial state of light [x,z,y] position
+ */
 let lightPos = [0.7, 0.52, -0.45];
+
+/**
+ * @const {1|0} - if '1' that means animation is enabled
+ */
 let animation = 1;
+
+/**
+ * @const {number} - initial phase of animation
+ */
 let animationPhase = 15.0;
 
+/**
+ * This class is used to create shaders, initiate them, register all uniform variables and
+ * start painting in the GPU.
+ * @class
+ */
 class EffectPass {
+  /**
+   * Initiates inputs, sources and renderer for the scene.
+   * @param {Object} renderer - webgl renderer exemplar
+   * @param {Effect} effect - exemplar of class Effect
+   * @constructor
+   */
   constructor(renderer, effect) {
     this.mInputs = [null, null, null, null];
     this.mOutputs = [null, null, null, null];
@@ -83,7 +134,24 @@ class EffectPass {
   }
 }
 
+/**
+ * This class is used like orchestrator of scene painting.
+ * Gets canvas like argument, creates its context, webgl renderer exemplar and initialize webgl context.
+ * Register animation frame of canvas rerender, loads vertex shader code into webgl context
+ * Has methods:
+ * RequestAnimationFrame - to register new animation frame of scene rerender
+ * Paint - method that calls paint on canvas
+ * NewShader - register new shader
+ * Load - loads shader
+ * Compile - method that will load shader and start painting
+ * @class
+ */
 class Effect {
+  /**
+   * Gets canvas width and height, creates webgl context and renderer exemplar
+   * @param {HTMLElement} canvas - HTML canvas element
+   * @returns {void} returns nothing in case of bad initializing by webgl
+   */
   constructor(canvas) {
     this.mGLContext = piCreateGlContext(canvas, false, false, true, false); // need preserve-buffer to true in order to capture screenshots
     this.mRenderer = piRenderer();
@@ -132,7 +200,21 @@ class Effect {
   }
 }
 
+/**
+ * This class is used to initialize canvas, canvas properties and mouse position.
+ * Classes constructor gets canvas inside the document, calculates canvas size, ads mouse events on canvas.
+ * Canvas class has methods:
+ * Load - to load and initialize shader
+ * startRendering - method to start render of the scene.
+ * @class
+ */
 class Canvas {
+  /**
+   * Constructor of class Canvas gets HTML parent element of canvas, calculates it properties.
+   * Defines canvas mouse events.
+   * @constructor
+   * @param {HTMLElement} parentElement - HTML element, that contains canvas
+   */
   constructor(parentElement) {
     this.parentElement = parentElement;
 
@@ -206,6 +288,11 @@ class Canvas {
     this.mEffect = new Effect(canvas, this);
   }
 
+  /**
+   * This method is used to start rendering the scene inside canvas, update fps and timer counters
+   * Calls to paint function on each change of the scene
+   * @private
+   */
   startRendering() {
     const renderLoop2 = () => {
       this.mEffect.RequestAnimationFrame(renderLoop2);
@@ -246,6 +333,12 @@ class Canvas {
     renderLoop2();
   }
 
+  /**
+   * This method is used to load vertex shader code and call to startRendering function
+   * after code will be compiled
+   * @private
+   * @param {string} code - vertex shader in string format
+   */
   Load(code) {
     this.mEffect.Load(code);
 
@@ -255,17 +348,29 @@ class Canvas {
   }
 }
 
+/**
+ * Function that will be executed when the document is loaded to run scripts
+ * of creation 3d scene.
+ */
 function watchInit() {
   const gShaderToy = new Canvas(document.getElementById("player"));
   gShaderToy.Load(CODE);
 }
 
+/**
+ * Function to handle change of current color
+ * @param {ChangeEvent} e - input event object
+ */
 const changeColor = (e) => {
   const { value } = e.target;
   const rgbColor = value.slice(1, value.length).convertToRGB();
   color = rgbColor.map((el) => el / 255);
 };
 
+/**
+ * Function to handle change of camera position
+ * @param {ChangeEvent} e - input event object
+ */
 const changeCameraPos = (e) => {
   const newHeightValue = cameraHeight + e.deltaY * 0.01;
 
@@ -276,22 +381,39 @@ const changeCameraPos = (e) => {
   cameraHeight = newHeightValue;
 };
 
+/**
+ * Function to handle change of the light position
+ * @param {ChangeEvent} e - input event object
+ * @param {number} index - index of input from light inputs array
+ */
 const changeLightPos = (e, index) => {
   const newValue = lightPos;
   newValue[index] = +e.target.value;
   lightPos = newValue;
 };
 
+/**
+ * Function to handle animation change checkbox event
+ * @param {ChangeEvent} e - input event object
+ */
 const toggleAnimation = (e) => {
   animation = e.target.checked ? 1 : 0;
   document.querySelector("#animationBlock").classList.toggle("hide");
 };
 
+/**
+ * Function to handle animation phase change
+ * @param {ChangeEvent} e - input event object
+ */
 const changeAnimationPhase = (e) => {
   animationPhase = e.target.value;
   document.querySelector("#animationPhaseText").innerText = e.target.value;
 };
 
+/**
+ * This function is used to add and handle all possible clients events
+ * inside the program.
+ */
 function watchInputs() {
   // color
   const colorPicker = document.querySelector('input[name="colorPicker"]');
