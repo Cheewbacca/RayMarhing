@@ -1,17 +1,27 @@
 const HEADER = `
+// PI number constant
 #define PI 3.1415926538
+  // Canvas resolution
   uniform vec3      iResolution;
+  // Color variable for blocks
   uniform vec3      iColor;
+  // Programs exicution time
   uniform float     iTime;
+  // Mouse position
   uniform vec4      iMouse;
+  // Camera position
   uniform float     iCameraPos;
+  // Light source position
   uniform vec3      iLightPos;
-  uniform sampler2D iChannel1; 
+  // Is animation enabled 1|0
   uniform int       iAnimation; 
+  // Phase constant for animation
   uniform float     iAnimationPhase;
 
+  // draw the scene
   void mainImage( out vec4 c, in vec2 f );
 
+  // current color value
   out vec4 out_color;
 
   void main( void ){
@@ -23,16 +33,26 @@ const HEADER = `
 `;
 
 const CODE = `
+// Max distance for raymarch beam
 #define MAX_DISTANCE 255
 
+/**
+/ This function is used to get value of max distance from (0, 0, 0)
+*/
 float maxcomp( in vec3 v ) { 
     return max( max( v.x, v.y ), v.z ); 
 }
 
+/**
+/ This function is used to calculate distance from round cube
+*/
 float udBox( vec3 p, vec3 b, float r ){
     return length(max(abs(p)-b,0.0))-r;
 }
 
+/**
+/ This function is used to compute distance to the scene object
+*/
 vec3 map( in vec3 pos )
 {
 	vec2  p = fract( pos.xz ); 
@@ -41,16 +61,23 @@ vec3 map( in vec3 pos )
     return vec3( d, m.yz );
 }
 
+// Scene max size
 const float surface = 0.001;
 
+/**
+/ This function applies trace for current point in uV
+*/
 vec4 trace( vec3 ro, in vec3 rd, in float tmin, in float tmax, in vec2 center )
 {
+    // starting from camera position + some scalar value multiplied by normalized ray vector
     ro += tmin*rd;
     
 	vec2 pos = floor(ro.xz);
     vec3 rdi = 1.0/rd;
     vec3 rda = abs(rdi);
 	vec2 rds = sign(rd.xz);
+
+    // distance to nearest object on the scene
 	vec2 dis = (pos-ro.xz+ 0.5 + rds*0.5) * rdi.xz;
 	
 	vec3 res = vec3( -1.0 );
@@ -58,14 +85,18 @@ vec4 trace( vec3 ro, in vec3 rd, in float tmin, in float tmax, in vec2 center )
     // traverse regular grid (in 2D)
 	vec2 mm = vec2(0.0);
 
-        for( int i=0; i<1000; i++ ) 
-	{
+    // starting to render cubes on the scene (100 cubes)
+    for( int i=0; i<100; i++ ) {
 
         center.y += 0.01;
+
+        // animation calculation
         float l = length(center);
         float phase = iAnimationPhase*abs(sin(iTime*0.25));
 
         vec2 p = abs((center/l)*sin(l*phase-iTime*3.0));
+
+        // single cube positions
         vec3 cub = vec3( p.x, p.y, 0 );
 
         if (iAnimation == 0) cub = vec3( 0, 0, 0 );
@@ -74,6 +105,7 @@ vec4 trace( vec3 ro, in vec3 rd, in float tmin, in float tmax, in vec2 center )
         vec2 mini = (pr-0.5*rds)*rdi.xz;
         float s = max( mini.x, mini.y );
 
+        // circle is done
         if( (tmin+s)>tmax ) break;
         
         // intersect box
@@ -82,30 +114,36 @@ vec4 trace( vec3 ro, in vec3 rd, in float tmin, in float tmax, in vec2 center )
         vec3  ra = rb + 0.12;
 		vec3  rc = ro - ce;
         
+        // max distance from circle start
         float tN = maxcomp( -rdi*rc - rda*ra );
+         // max distance from circle end
         float tF = maxcomp( -rdi*rc + rda*ra );
 
-        if( tN < tF )
-        {
+        // if circle is big enough 
+        if( tN < tF ){
             // raymarch
             float s = tN;
             float h = 1.0;
-            for( int j=0; j<MAX_DISTANCE; j++ )
-            {
+            
+            // looping circles by a ray
+            for( int j=0; j<MAX_DISTANCE; j++ ){
+                // calculating distance from current circle to the object
                 h = udBox( rc+s*rd, rb, 0.1 ); 
                 s += h;
+
+                // if object is very far
                 if( s>tF ) break;
             }
 
-            if( h < (surface*s*2.0) )
-            {
+            // is object is really close
+            if( h < (surface*s*2.0) ){
                 res = vec3( s, cub.yz );
                 break; 
             }
             
 		}
 
-        // step to next cell		
+        // step to next cell
 		mm = step( dis.xy, dis.yx ); 
 		dis += mm*rda.xz;
         pos += mm*rds;
@@ -113,15 +151,13 @@ vec4 trace( vec3 ro, in vec3 rd, in float tmin, in float tmax, in vec2 center )
     
     res.x += tmin;
     
+    // getting cube position
 	return vec4(res.x, res.y, res.z, mm);
 }
 
-float usmoothstep( in float x )
-{
-    x = clamp(x,0.0,1.0);
-    return x*x*(3.0-2.0*x);
-}
-
+/**
+/ This function calculates 3 demencial normal vector for current point
+*/
 vec3 calcNormal( in vec3 pos, in float t )
 {
     vec2 e = vec2(1.0,-1.0)*surface*t;
@@ -131,73 +167,52 @@ vec3 calcNormal( in vec3 pos, in float t )
 					  e.xxx*map( pos + e.xxx ).x );
 }
 
-vec2 boundingVolume( vec2 tminmax, in vec3 ro, in vec3 rd )
-{
-    float bp = 10.0;
-    float tp = (bp-ro.y)/rd.y;
-    if( tp>0.0 ) 
-    {
-        if( ro.y>bp ) tminmax.x = max( tminmax.x, tp );
-        else          tminmax.y = min( tminmax.y, tp );
-    }
-    bp = 0.0;
-    tp = (bp-ro.y)/rd.y;
-    if( tp>0.0 ) 
-    {
-        if( ro.y>bp ) tminmax.y = min( tminmax.y, tp );
-    }
-
-    return tminmax;
-}
-
+/**
+/ This function is used to calculate current cube color according to the cube and light positions
+*/
 vec3 doLighting( in vec3 col, in vec3 pos, in vec3 nor, in vec3 rd, in float index )
 {
-    vec3 light1 = vec3(  iLightPos.x, iLightPos.y, iLightPos.z );
+    // cube color from the uniform variable
+    vec3 light1 = iLightPos;
+    // light color
     vec3 light2 = vec3( -0, 0.000,  1 );
 
+    // light position
     vec3 lpos = vec3(0.0) + 6.0*light1;
 
+    // distance from light source to the cube
     vec3  ldif = lpos - pos;
+    // length of the light ray 
     float llen = length( ldif );
 
     ldif /= llen;
 
+    // light dot product
 	float con = dot( light1,ldif);
 	float occ = mix( clamp( pos.y/4.0, 0.0, 1.0 ), 1.0, 0.2*max(0.0,nor.y) );
-    vec2 sminmax = vec2(0.01, 5.0);
 
-		
-    float lkey = clamp( dot(nor,ldif), 0.0, 1.0 );
+    // lambertian
+    float lamb = clamp( dot(nor,ldif), 0.0, 1.0 );
+
+    // additional shading
 	vec3  lkat = vec3(1.0);
           lkat /= 1.0+0.25*llen*llen;		
 		  lkat *= 30.0;
-          
-    
-    float lbac = clamp( 0.5 + 0.5*dot( light2, nor ), 0.0, 1.0 );
-		  lbac /= 1.0+0.2*llen*llen;		
-		  lbac *= 7.0;
-	float lamb = 1.0 - 0.5*nor.y;
-		  lamb *= 0.25;
 
-    vec3 lin  = 1.0*vec3(1.60,0.70,0.30)*lkey*lkat*(0.5+0.5*occ);
-         lin += 1.0*vec3(0.20,0.05,0.02)*lamb*occ*occ;
-         lin += 1.0*vec3(0.70,0.20,0.08)*lbac*occ*occ;
-         lin *= vec3(1.3,1.1,1.0);
+    // meshing lambertian with additional shading
+    vec3 lin  = 1.0*vec3(1.60,0.70,0.30)*lamb*lkat*(0.5+0.5*occ);
     
     col = col*lin;
 
-    vec3 hal = normalize(ldif-rd);
-    vec3 spe = lkey*lkat*(0.5+0.5*occ)*5.0*
-               pow( clamp(dot(hal, nor),0.0,1.0), 6.0+6.0 ) * 
-               (0.04+0.96*pow(clamp(1.0-dot(hal,ldif),0.0,1.0),5.0));
-
-    col += (0.4+0.6)*spe*vec3(0.8,0.9,1.0);
-
     col = 1.4*col/(1.0+col);
     
+    // result color
     return col ;
 }
 
+/**
+/ This function is used to set up camera look position
+*/
 mat3 setLookAt( in vec3 ro, in vec3 ta, float cr )
 {
 	vec3  cw = normalize(ta-ro);
@@ -207,64 +222,87 @@ mat3 setLookAt( in vec3 ro, in vec3 ta, float cr )
     return mat3( cu, cv, cw );
 }
 
+/**
+/ This function is used to execute scene rendering
+*/
 vec3 render( in vec3 ro, in vec3 rd, in vec2 xy, in vec2 center )
 {
     vec3 col = vec3(0.2);
 
+    // defined scene size
     vec2 tminmax = vec2(0.0, 40.0 );
 
-    tminmax = boundingVolume( tminmax, ro, rd );
-
-   // raytrace
+    // cube position
     vec4 result = trace( ro, rd, tminmax.x, tminmax.y, center );
 
+    // cube coordinates
     vec3 res = result.xyz;
     
+    // if object relates to the scene 
     if( res.y > -0.5 )
     {
         float t = res.x;
         float index = result.w;
 
+        // next iteration step
         vec3 pos = ro + t*rd;
         vec3 nor = calcNormal( pos, t );
 
-        // lighting
+        // defining color lighting
         col = doLighting( vec3(iColor), pos, nor, rd, index );
     } else {
+        // default scene background
         col += vec3(0.2, 0.25, 0.1);
     }
 
     return col;
 }
 
+/**
+/ This function is used like an entry point to starting scene drawing
+/ fragColor - current color value
+/ fragCoord - current pixel coordinate
+*/
 void mainImage( out vec4 fragColor, in vec2 fragCoord )
 {    
+    // calculating time constant depending on mouse position, canvas properties 
+    // and programs time exicution value
     float time = 5.0 + 0.1*iTime + 20.0*iMouse.x/iResolution.x;
     
+    // creating temporary color variable
     vec3 tot = vec3(0.0);
+
+    // calculating coordinates position depending on canvas properties
     vec2 off = vec2(0,0)/float(2);
     vec2 xy = (-iResolution.xy+2.0*(fragCoord+off)) / iResolution.y;
 
+    // getting corners of canvas scene
     float maxAxis = max(iResolution.x, iResolution.y);
-    vec2 uv = fragColor.xy / maxAxis;
+
+    // center of the scene
     vec2 center = -1.0 + 2.0 * fragCoord.xy / iResolution.xy;
 
     // camera	
     vec3 ro = vec3( 8.5*cos(0.2+.33*time), iCameraPos, 12.5*sin(0.1+0.37*time) );
     vec3 ta = vec3( -2.5+3.0*cos(1.2+.41*time), 0.0, 2.0+3.0*sin(2.0+0.38*time) );
+
+    // coefficient of camera rotating position
     float roll = 0.2*sin(0.1*time);
 
-    // camera tx
+    // camera position
     mat3 ca = setLookAt( ro, ta, roll );
     vec3 rd = normalize( ca * vec3(xy.xy,1.75) );
 
+    // current color value
     vec3 col = vec3(1);
 
+    // render result
     col = render( ro, rd, xy, center );
+    
+    // adding some additional lights
     col = pow( col, vec3(0.4545) );
     col = pow( col, vec3(0.8,0.93,1.0) );
     tot += col;
  
-            
     fragColor = vec4( tot, 1.0 );
 }`;
